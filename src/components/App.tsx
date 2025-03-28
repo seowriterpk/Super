@@ -51,6 +51,7 @@ function App() {
     }
   };
 
+
   const handleResize = (e: MouseEvent) => {
     if (!editor.current || !preview.current || !resizer.current) return;
     const editorWidth = e.clientX;
@@ -60,6 +61,7 @@ function App() {
   };
 
   const handleMouseDown = () => {
+    console.log(breakpoint)
     setIsResizing(true);
     document.addEventListener("mousemove", handleResize);
     document.addEventListener("mouseup", handleMouseUp);
@@ -85,7 +87,7 @@ function App() {
       toast.warn("Previous HTML content restored from local storage.");
     }
     if (!editor.current || !preview.current) return;
-
+    
     if (breakpoint === "lg") {
       // Set initial sizes
       const initialEditorWidth = window.innerWidth / 2;
