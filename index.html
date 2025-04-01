@@ -1,29 +1,832 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DeepSite | Build with AI ✨</title>
-    <meta
-      name="description"
-      content="DeepSite is a web development tool that
-    helps you build websites with AI, no code required. Let's deploy your
-    website with DeepSite and enjoy the magic of AI."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastGo - Доставка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            max-width: 414px;
+            height: 100vh;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .map-container {
+            height: 300px;
+            width: 100%;
+            background: #e0e0e0;
+            position: relative;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 414px;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #757575;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        .nav-item.active {
+            color: #3b82f6;
+        }
+        
+        .order-card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 10px;
+            padding: 15px;
+            background: white;
+        }
+        
+        .chat-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin: 5px 0;
+        }
+        
+        .chat-bubble.sent {
+            background: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .chat-bubble.received {
+            background: #e5e7eb;
+            color: black;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 350px;
+        }
+        
+        .slide-enter-active, .slide-leave-active {
+            transition: transform 0.3s ease;
+        }
+        
+        .slide-enter, .slide-leave-to {
+            transform: translateX(100%);
+        }
+        
+        .page {
+            position: absolute;
+            width: 100%;
+            height: calc(100% - 60px);
+            overflow-y: auto;
+            padding-bottom: 60px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="page">
+            <div class="flex flex-col items-center justify-center h-full px-6">
+                <div class="text-3xl font-bold text-blue-500 mb-8">FastGo</div>
+                
+                <div class="w-full max-w-xs">
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                            Email
+                        </label>
+                        <input id="email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="email" placeholder="Email">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                            Пароль
+                        </label>
+                        <input id="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="password" placeholder="Пароль">
+                    </div>
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="login-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                            Войти
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <button id="register-btn" class="text-blue-500 text-sm">Зарегистрироваться</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main App (hidden initially) -->
+        <div id="main-app" class="hidden">
+            <!-- Home Screen -->
+            <div id="home-page" class="page">
+                <div class="bg-blue-500 text-white p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="text-xl font-bold">FastGo</div>
+                        <div class="flex items-center">
+                            <span id="notification-icon" class="material-icons relative">notifications</span>
+                            <div id="notification-count" class="notification-badge hidden">0</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-sm">Добро пожаловать, <span id="user-name"></span>!</div>
+                        <div class="text-xs mt-1" id="user-role"></div>
+                    </div>
+                </div>
+                
+                <div id="user-view" class="hidden">
+                    <div class="p-4">
+                        <button id="create-order-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg w-full flex items-center justify-center">
+                            <span class="material-icons mr-2">add</span> Создать заказ
+                        </button>
+                    </div>
+                    
+                    <div class="px-4">
+                        <h3 class="font-bold text-lg mb-2">Активные заказы</h3>
+                        <div id="active-orders-list"></div>
+                    </div>
+                </div>
+                
+                <div id="courier-view" class="hidden">
+                    <div class="map-container">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-gray-500">Карта будет здесь</div>
+                        </div>
+                    </div>
+                    
+                    <div class="px-4 mt-4">
+                        <h3 class="font-bold text-lg mb-2">Доступные заказы</h3>
+                        <div id="available-orders-list"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Orders Screen -->
+            <div id="orders-page" class="page hidden">
+                <div class="bg-blue-500 text-white p-4">
+                    <div class="text-xl font-bold">Мои заказы</div>
+                </div>
+                
+                <div class="p-4">
+                    <div class="flex border-b mb-4">
+                        <button id="active-orders-tab" class="pb-2 px-4 border-b-2 border-blue-500 font-medium text-blue-500">Активные</button>
+                        <button id="history-orders-tab" class="pb-2 px-4 font-medium text-gray-500">История</button>
+                    </div>
+                    
+                    <div id="orders-list"></div>
+                </div>
+            </div>
+            
+            <!-- Chat Screen -->
+            <div id="chat-page" class="page hidden">
+                <div class="bg-blue-500 text-white p-4 flex items-center">
+                    <button id="back-to-chats" class="mr-2">
+                        <span class="material-icons">arrow_back</span>
+                    </button>
+                    <div class="text-xl font-bold" id="chat-title">Чат</div>
+                </div>
+                
+                <div id="chats-list-container" class="h-full overflow-y-auto">
+                    <div id="chats-list" class="p-2"></div>
+                </div>
+                
+                <div id="chat-container" class="hidden h-full flex flex-col">
+                    <div id="messages-container" class="flex-1 overflow-y-auto p-4 flex flex-col"></div>
+                    <div class="p-2 border-t flex">
+                        <input id="message-input" type="text" placeholder="Написать сообщение..." class="flex-1 border rounded-full py-2 px-4 focus:outline-none">
+                        <button id="send-message-btn" class="ml-2 bg-blue-500 text-white rounded-full p-2">
+                            <span class="material-icons">send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profile Screen -->
+            <div id="profile-page" class="page hidden">
+                <div class="bg-blue-500 text-white p-4">
+                    <div class="text-xl font-bold">Профиль</div>
+                </div>
+                
+                <div class="p-4">
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-2xl text-gray-600 mr-4">
+                            <span class="material-icons">person</span>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg" id="profile-name"></div>
+                            <div class="text-gray-600 text-sm" id="profile-email"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="font-medium mb-2">Информация</div>
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <div class="flex justify-between py-2 border-b">
+                                <span class="text-gray-600">Роль</span>
+                                <span class="font-medium" id="profile-role"></span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b" id="profile-phone-container">
+                                <span class="text-gray-600">Телефон</span>
+                                <span class="font-medium" id="profile-phone"></span>
+                            </div>
+                            <div class="flex justify-between py-2" id="profile-vehicle-container">
+                                <span class="text-gray-600">Транспорт</span>
+                                <span class="font-medium" id="profile-vehicle"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="edit-profile-btn" class="w-full bg-blue-500 text-white py-2 rounded-lg mb-4">
+                        Редактировать профиль
+                    </button>
+                    
+                    <button id="logout-btn" class="w-full bg-gray-200 text-gray-800 py-2 rounded-lg">
+                        Выйти
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bottom Navigation -->
+            <div class="bottom-nav">
+                <a href="#" class="nav-item active" data-page="home-page">
+                    <span class="material-icons">home</span>
+                    <span>Главная</span>
+                </a>
+                <a href="#" class="nav-item" data-page="orders-page">
+                    <span class="material-icons">list_alt</span>
+                    <span>Заказы</span>
+                </a>
+                <a href="#" class="nav-item" data-page="chat-page">
+                    <span class="material-icons">chat</span>
+                    <span>Чаты</span>
+                </a>
+                <a href="#" class="nav-item" data-page="profile-page">
+                    <span class="material-icons">person</span>
+                    <span>Профиль</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Create Order Modal -->
+        <div id="create-order-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="font-bold text-lg mb-4">Создать заказ</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="from-address">
+                        Откуда
+                    </label>
+                    <input id="from-address" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Адрес отправления">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="to-address">
+                        Куда
+                    </label>
+                    <input id="to-address" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Адрес назначения">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="order-description">
+                        Описание
+                    </label>
+                    <textarea id="order-description" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Что нужно доставить?"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="order-price">
+                        Предложите цену (₽)
+                    </label>
+                    <input id="order-price" type="number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="100">
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="cancel-create-order" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2">Отмена</button>
+                    <button id="confirm-create-order" class="bg-blue-500 text-white px-4 py-2 rounded">Создать</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Profile Modal -->
+        <div id="edit-profile-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="font-bold text-lg mb-4">Редактировать профиль</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-name">
+                        Имя
+                    </label>
+                    <input id="edit-name" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-phone">
+                        Телефон
+                    </label>
+                    <input id="edit-phone" type="tel" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div class="mb-4" id="edit-vehicle-container">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-vehicle">
+                        Транспорт (для курьеров)
+                    </label>
+                    <select id="edit-vehicle" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="Пешком">Пешком</option>
+                        <option value="Велосипед">Велосипед</option>
+                        <option value="Мотоцикл">Мотоцикл</option>
+                        <option value="Автомобиль">Автомобиль</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="cancel-edit-profile" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2">Отмена</button>
+                    <button id="save-profile" class="bg-blue-500 text-white px-4 py-2 rounded">Сохранить</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Details Modal -->
+        <div id="order-details-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="font-bold text-lg mb-4">Детали заказа</h3>
+                
+                <div class="mb-4">
+                    <div class="text-gray-600 text-sm">Откуда:</div>
+                    <div class="font-medium" id="detail-from-address"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-600 text-sm">Куда:</div>
+                    <div class="font-medium" id="detail-to-address"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-600 text-sm">Описание:</div>
+                    <div class="font-medium" id="detail-description"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-600 text-sm">Статус:</div>
+                    <div class="font-medium" id="detail-status"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-600 text-sm">Цена:</div>
+                    <div class="font-medium" id="detail-price"></div>
+                </div>
+                
+                <div class="mb-4" id="courier-info-container">
+                    <div class="text-gray-600 text-sm">Курьер:</div>
+                    <div class="font-medium" id="detail-courier"></div>
+                </div>
+                
+                <div id="user-actions" class="hidden">
+                    <button id="cancel-order-btn" class="w-full bg-red-500 text-white py-2 rounded-lg mb-2">
+                        Отменить заказ
+                    </button>
+                    <button id="chat-with-courier-btn" class="w-full bg-blue-500 text-white py-2 rounded-lg">
+                        Написать курьеру
+                    </button>
+                </div>
+                
+                <div id="courier-actions" class="hidden">
+                    <button id="accept-order-btn" class="w-full bg-green-500 text-white py-2 rounded-lg mb-2">
+                        Принять заказ
+                    </button>
+                    <button id="offer-price-btn" class="w-full bg-blue-500 text-white py-2 rounded-lg mb-2">
+                        Предложить свою цену
+                    </button>
+                    <button id="complete-order-btn" class="w-full bg-green-500 text-white py-2 rounded-lg">
+                        Завершить заказ
+                    </button>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="close-order-details" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Закрыть</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Offer Price Modal -->
+        <div id="offer-price-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="font-bold text-lg mb-4">Предложить свою цену</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="offer-price">
+                        Ваша цена (₽)
+                    </label>
+                    <input id="offer-price" type="number" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="150">
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="cancel-offer-price" class="bg-gray-300 text-gray-800 px-4 py-2 rounded mr-2">Отмена</button>
+                    <button id="confirm-offer-price" class="bg-blue-500 text-white px-4 py-2 rounded">Отправить</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification Modal -->
+        <div id="notification-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="font-bold text-lg mb-4">Уведомления</h3>
+                
+                <div id="notifications-list" class="max-h-60 overflow-y-auto"></div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="close-notifications" class="bg-gray-300 text-gray-800 px-4 py-2 rounded">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyDummyKeyDummyKeyDummyKey",
+            authDomain: "fastgo-delivery.firebaseapp.com",
+            projectId: "fastgo-delivery",
+            storageBucket: "fastgo-delivery.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:dummyappid1234567890"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const messaging = firebase.messaging();
+        
+        // Current user data
+        let currentUser = null;
+        let userData = null;
+        let currentOrderDetails = null;
+        let currentChatId = null;
+        
+        // DOM elements
+        const authScreen = document.getElementById('auth-screen');
+        const mainApp = document.getElementById('main-app');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const userNameElement = document.getElementById('user-name');
+        const userRoleElement = document.getElementById('user-role');
+        const userView = document.getElementById('user-view');
+        const courierView = document.getElementById('courier-view');
+        const activeOrdersList = document.getElementById('active-orders-list');
+        const availableOrdersList = document.getElementById('available-orders-list');
+        const ordersList = document.getElementById('orders-list');
+        const createOrderBtn = document.getElementById('create-order-btn');
+        const createOrderModal = document.getElementById('create-order-modal');
+        const cancelCreateOrderBtn = document.getElementById('cancel-create-order');
+        const confirmCreateOrderBtn = document.getElementById('confirm-create-order');
+        const fromAddressInput = document.getElementById('from-address');
+        const toAddressInput = document.getElementById('to-address');
+        const orderDescriptionInput = document.getElementById('order-description');
+        const orderPriceInput = document.getElementById('order-price');
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = document.querySelectorAll('.page');
+        const orderDetailsModal = document.getElementById('order-details-modal');
+        const closeOrderDetailsBtn = document.getElementById('close-order-details');
+        const detailFromAddress = document.getElementById('detail-from-address');
+        const detailToAddress = document.getElementById('detail-to-address');
+        const detailDescription = document.getElementById('detail-description');
+        const detailStatus = document.getElementById('detail-status');
+        const detailPrice = document.getElementById('detail-price');
+        const detailCourier = document.getElementById('detail-courier');
+        const courierInfoContainer = document.getElementById('courier-info-container');
+        const userActions = document.getElementById('user-actions');
+        const courierActions = document.getElementById('courier-actions');
+        const acceptOrderBtn = document.getElementById('accept-order-btn');
+        const offerPriceBtn = document.getElementById('offer-price-btn');
+        const completeOrderBtn = document.getElementById('complete-order-btn');
+        const cancelOrderBtn = document.getElementById('cancel-order-btn');
+        const chatWithCourierBtn = document.getElementById('chat-with-courier-btn');
+        const offerPriceModal = document.getElementById('offer-price-modal');
+        const offerPriceInput = document.getElementById('offer-price');
+        const cancelOfferPriceBtn = document.getElementById('cancel-offer-price');
+        const confirmOfferPriceBtn = document.getElementById('confirm-offer-price');
+        const profileName = document.getElementById('profile-name');
+        const profileEmail = document.getElementById('profile-email');
+        const profileRole = document.getElementById('profile-role');
+        const profilePhone = document.getElementById('profile-phone');
+        const profileVehicle = document.getElementById('profile-vehicle');
+        const profilePhoneContainer = document.getElementById('profile-phone-container');
+        const profileVehicleContainer = document.getElementById('profile-vehicle-container');
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const editProfileModal = document.getElementById('edit-profile-modal');
+        const editNameInput = document.getElementById('edit-name');
+        const editPhoneInput = document.getElementById('edit-phone');
+        const editVehicleInput = document.getElementById('edit-vehicle');
+        const editVehicleContainer = document.getElementById('edit-vehicle-container');
+        const cancelEditProfileBtn = document.getElementById('cancel-edit-profile');
+        const saveProfileBtn = document.getElementById('save-profile');
+        const logoutBtn = document.getElementById('logout-btn');
+        const activeOrdersTab = document.getElementById('active-orders-tab');
+        const historyOrdersTab = document.getElementById('history-orders-tab');
+        const chatPage = document.getElementById('chat-page');
+        const chatsList = document.getElementById('chats-list');
+        const chatContainer = document.getElementById('chat-container');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendMessageBtn = document.getElementById('send-message-btn');
+        const backToChatsBtn = document.getElementById('back-to-chats');
+        const chatTitle = document.getElementById('chat-title');
+        const notificationIcon = document.getElementById('notification-icon');
+        const notificationCount = document.getElementById('notification-count');
+        const notificationModal = document.getElementById('notification-modal');
+        const notificationsList = document.getElementById('notifications-list');
+        const closeNotificationsBtn = document.getElementById('close-notifications');
+        
+        // Initialize the app
+        function initApp() {
+            // Check auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    currentUser = user;
+                    loadUserData();
+                    authScreen.classList.add('hidden');
+                    mainApp.classList.remove('hidden');
+                    showPage('home-page');
+                } else {
+                    // User is signed out
+                    currentUser = null;
+                    userData = null;
+                    authScreen.classList.remove('hidden');
+                    mainApp.classList.add('hidden');
+                }
+            });
+            
+            // Event listeners
+            loginBtn.addEventListener('click', signIn);
+            registerBtn.addEventListener('click', register);
+            createOrderBtn.addEventListener('click', () => createOrderModal.classList.remove('hidden'));
+            cancelCreateOrderBtn.addEventListener('click', () => createOrderModal.classList.add('hidden'));
+            confirmCreateOrderBtn.addEventListener('click', createOrder);
+            closeOrderDetailsBtn.addEventListener('click', () => orderDetailsModal.classList.add('hidden'));
+            acceptOrderBtn.addEventListener('click', acceptOrder);
+            offerPriceBtn.addEventListener('click', () => offerPriceModal.classList.remove('hidden'));
+            cancelOfferPriceBtn.addEventListener('click', () => offerPriceModal.classList.add('hidden'));
+            confirmOfferPriceBtn.addEventListener('click', submitOfferPrice);
+            completeOrderBtn.addEventListener('click', completeOrder);
+            cancelOrderBtn.addEventListener('click', cancelOrder);
+            chatWithCourierBtn.addEventListener('click', openChatWithCourier);
+            editProfileBtn.addEventListener('click', () => {
+                editNameInput.value = userData.name || '';
+                editPhoneInput.value = userData.phone || '';
+                if (userData.role === 'courier') {
+                    editVehicleContainer.classList.remove('hidden');
+                    editVehicleInput.value = userData.vehicle || 'Пешком';
+                } else {
+                    editVehicleContainer.classList.add('hidden');
+                }
+                editProfileModal.classList.remove('hidden');
+            });
+            cancelEditProfileBtn.addEventListener('click', () => editProfileModal.classList.add('hidden'));
+            saveProfileBtn.addEventListener('click', saveProfile);
+            logoutBtn.addEventListener('click', signOut);
+            activeOrdersTab.addEventListener('click', () => loadOrders('active'));
+            historyOrdersTab.addEventListener('click', () => loadOrders('history'));
+            sendMessageBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+            backToChatsBtn.addEventListener('click', () => {
+                chatContainer.classList.add('hidden');
+                chatsList.classList.remove('hidden');
+                currentChatId = null;
+            });
+            notificationIcon.addEventListener('click', () => {
+                showNotifications();
+                notificationCount.classList.add('hidden');
+                updateNotificationCount(0);
+            });
+            closeNotificationsBtn.addEventListener('click', () => notificationModal.classList.add('hidden'));
+            
+            // Navigation
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const pageId = item.getAttribute('data-page');
+                    showPage(pageId);
+                    
+                    // Update active nav item
+                    navItems.forEach(navItem => navItem.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+            
+            // Request notification permission
+            requestNotificationPermission();
+        }
+        
+        // Show page
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            // Load data for the page
+            switch(pageId) {
+                case 'home-page':
+                    if (userData?.role === 'user') {
+                        userView.classList.remove('hidden');
+                        courierView.classList.add('hidden');
+                        loadActiveOrders();
+                    } else if (userData?.role === 'courier') {
+                        userView.classList.add('hidden');
+                        courierView.classList.remove('hidden');
+                        loadAvailableOrders();
+                    }
+                    break;
+                case 'orders-page':
+                    loadOrders('active');
+                    break;
+                case 'chat-page':
+                    loadChats();
+                    break;
+                case 'profile-page':
+                    loadProfile();
+                    break;
+            }
+        }
+        
+        // Sign in
+        function signIn() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                alert('Пожалуйста, введите email и пароль');
+                return;
+            }
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(error => {
+                    alert('Ошибка входа: ' + error.message);
+                });
+        }
+        
+        // Register
+        function register() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                alert('Пожалуйста, введите email и пароль');
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Ask for user role
+                    const role = confirm('Вы клиент? (Нажмите OK для клиента, Отмена для курьера)') ? 'user' : 'courier';
+                    
+                    // Create user document
+                    return db.collection('users').doc(auth.currentUser.uid).set({
+                        email: email,
+                        role: role,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .catch(error => {
+                    alert('Ошибка регистрации: ' + error.message);
+                });
+        }
+        
+        // Sign out
+        function signOut() {
+            auth.signOut();
+        }
+        
+        // Load user data
+        function loadUserData() {
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        userData = doc.data();
+                        userData.id = doc.id;
+                        
+                        // Update UI
+                        userNameElement.textContent = userData.name || userData.email;
+                        userRoleElement.textContent = userData.role === 'user' ? 'Клиент' : 'Курьер';
+                        
+                        // Show appropriate view
+                        if (userData.role === 'user') {
+                            userView.classList.remove('hidden');
+                            courierView.classList.add('hidden');
+                        } else {
+                            userView.classList.add('hidden');
+                            courierView.classList.remove('hidden');
+                        }
+                        
+                        // Subscribe to notifications
+                        subscribeToNotifications();
+                    } else {
+                        console.error('No user data found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading user data:', error);
+                });
+        }
+        
+        // Create order
+        function createOrder() {
+            const fromAddress = fromAddressInput.value;
+            const toAddress = toAddressInput.value;
+            const description = orderDescriptionInput.value;
+            const price = parseInt(orderPriceInput.value);
+            
+            if (!fromAddress || !toAddress || !description || !price) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            const orderData = {
+                fromAddress: fromAddress,
+                toAddress: toAddress,
+                description: description,
+                price: price,
+                status: 'pending',
+                userId: currentUser.uid,
+                userName: userData.name || 'Аноним',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            db.collection('orders').add(orderData)
+                .then(() => {
+                    createOrderModal.classList.add('hidden');
+                    fromAddressInput.value = '';
+                    toAddressInput.value = '';
+                    orderDescriptionInput.value = '';
+
 </html>
