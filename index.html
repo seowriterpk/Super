@@ -2,28 +2,64 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.openweathermap.org;"
+    />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DeepSite | Build with AI ✨</title>
     <meta
       name="description"
-      content="DeepSite is a web development tool that
-    helps you build websites with AI, no code required. Let's deploy your
-    website with DeepSite and enjoy the magic of AI."
+      content="DeepSite is a web development tool that helps you build websites with AI, no code required. Let's deploy your website with DeepSite and enjoy the magic of AI."
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="DeepSite | Build with AI ✨" />
+    <meta
+      property="og:description"
+      content="DeepSite is a web development tool that helps you build websites with AI, no code required."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://your-deepsite-url.com" />
+    <meta property="og:image" content="/logo.svg" />
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DeepSite | Build with AI ✨" />
+    <meta
+      name="twitter:description"
+      content="DeepSite is a web development tool that helps you build websites with AI, no code required."
+    />
+    <meta name="twitter:image" content="/logo.svg" />
+    <!-- Accessibility -->
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="DeepSite Team" />
+    <!-- Optimize Font Loading -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     <link
+      rel="preload"
       href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
-      rel="stylesheet"
+      as="style"
+      onload="this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <noscript>
+      <div style="text-align: center; padding: 20px;">
+        <h1>DeepSite | Build with AI ✨</h1>
+        <p>
+          JavaScript is required to use this application. Please enable
+          JavaScript in your browser settings.
+        </p>
+      </div>
+    </noscript>
   </body>
 </html>
